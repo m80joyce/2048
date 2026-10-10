@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>2048: Boom Edition</title>
+<style>
+:root{--bg:#101025;--panel:#1d1d3c;--pink:#ff4dca;--cyan:#47f5ff;--yellow:#ffe66d}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at top,#30215a,var(--bg) 65%);color:white;font-family:system-ui,-apple-system,sans-serif;display:flex;justify-content:center;align-items:center;padding:16px;overflow-x:hidden;user-select:none}
+button,input{font:inherit}
+button{cursor:pointer;border:0;color:#17132c;font-weight:900;border-radius:16px;background:linear-gradient(135deg,var(--yellow),#ff9d4d);padding:15px 24px;box-shadow:0 5px 0 #a64e48;transition:transform .12s}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #a64e48}
+button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+.app{width:min(100%,430px);position:relative}
+.logo{text-align:center;font-size:clamp(34px,10vw,54px);line-height:1.05;font-weight:1000;letter-spacing:-3px;text-shadow:3px 4px 0 #7a36c9;margin:0 0 8px}
+.logo span{color:var(--cyan)}
+.tag{text-align:center;color:#c9c4f5;font-size:13px;letter-spacing:2px;margin-bottom:22px}
+.panel{background:#1b1a38eF;border:1px solid #655b9c;border-radius:24px;padding:20px;box-shadow:0 15px 50px #0005}
+h2{margin:0 0 8px;font-size:25px}
+p{color:#c9c4e9;line-height:1.5}
+label{display:block;font-size:13px;color:#bcb5e8;margin:18px 0 7px}
+input{width:100%;background:#111128;border:2px solid #514679;border-radius:12px;color:white;padding:14px;outline:none}
+input:focus{border-color:var(--cyan)}
+.big{width:100%;font-size:19px;margin-top:18px}
+.mini{font-size:12px;text-align:center;color:#a8a2d1;margin-top:18px}
+.hidden{display:none!important}
+.hud{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0}
+.stat{background:var(--panel);border:1px solid #4c4678;border-radius:14px;text-align:center;padding:9px}
+.stat small{display:block;color:#b5addf;font-size:10px;letter-spacing:1.5px}
+.stat strong{font-size:23px;color:var(--yellow)}
+.greeting{font-size:14px;color:#cfc9f2;margin:10px 0}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.topline button{padding:9px 12px;font-size:12px}
+.board-wrap{position:relative;touch-action:none}
+.board{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:10px;background:#13132c;border:2px solid #49436f;border-radius:18px;aspect-ratio:1;overflow:hidden}
+.cell{position:relative;border-radius:10px;background:#292744;display:flex;align-items:center;justify-content:center;font-weight:1000;font-size:clamp(19px,6vw,29px);letter-spacing:-1px;aspect-ratio:1;min-width:0;transition:background .15s}
+.cell.filled{animation:pop .19s ease-out}
+.cell[data-v="2"]{background:#e6f5ff;color:#24325c}
+.cell[data-v="4"]{background:#b9f9ff;color:#15375b}
+.cell[data-v="8"]{background:#58e9e8;color:#133c50}
+.cell[data-v="16"]{background:#5de7ad;color:#103f38}
+.cell[data-v="32"]{background:#d4f66b;color:#3b4612}
+.cell[data-v="64"]{background:#ffe66d;color:#5a3514}
+.cell[data-v="128"]{background:#ffb45e;color:#57242a;font-size:clamp(17px,5vw,25px)}
+.cell[data-v="256"]{background:#ff8d91;color:#591c4a;font-size:clamp(17px,5vw,25px)}
+.cell[data-v="512"]{background:#ff69ce;color:#401a5d;font-size:clamp(16px,4.8vw,24px)}
+.cell[data-v="1024"]{background:#bd8aff;color:#27104f;font-size:clamp(14px,4.2vw,22px)}
+.cell[data-v="2048"]{background:linear-gradient(135deg,#fff27b,#ff61d5,#69faff);color:#27104f;font-size:clamp(14px,4vw,22px);box-shadow:inset 0 0 15px white}
+.cell.high{background:linear-gradient(135deg,#fe5b66,#9b39ff);color:white}
+@keyframes pop{0%{transform:scale(.7)}75%{transform:scale(1.08)}100%{transform:scale(1)}}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:190px;margin:13px auto 0}
+.controls button{padding:9px;font-size:19px;border-radius:12px;background:#30294f;color:white;box-shadow:0 3px 0 #141025}
+.controls .empty{visibility:hidden}
+.hint{text-align:center;color:#9e98c9;font-size:11px;margin:12px 0 0}
+#effects{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:18px;z-index:3}
+.boom{position:absolute;font-size:60px;animation:explode .7s ease-out forwards;filter:drop-shadow(0 0 15px #ffcf60)}
+@keyframes explode{0%{transform:scale(.1) rotate(-25deg);opacity:0}30%{transform:scale(1.3);opacity:1}100%{transform:scale(2.5) rotate(25deg);opacity:0}}
+.float{position:absolute;left:50%;top:40%;font-weight:1000;font-size:25px;color:#fff36b;text-shadow:0 0 10px #ff42bc;animation:floatup .85s ease-out forwards;white-space:nowrap}
+@keyframes floatup{to{transform:translateY(-65px) scale(1.3);opacity:0}}
+#overlay{position:absolute;inset:0;z-index:5;background:#111025df;backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;border-radius:20px;padding:22px;text-align:center}
+#overlay .panel{width:100%}
+#overlay h2{font-size:32px;color:var(--yellow)}
+.grenade{font-size:40px;margin:10px}
+.secondary{background:#353052;color:white;box-shadow:0 4px 0 #161226}
+.footer{text-align:center;font-size:11px;color:#8c85b7;margin-top:17px}
+@media(max-height:720px){body{padding:10px}.tag{margin-bottom:12px}.panel{padding:16px}.hud{margin:10px 0}.board{gap:6px;padding:7px}.cell{border-radius:8px}.controls{margin-top:8px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <h1 class="logo">2048<span>!</span> 💥</h1>
+  <div class="tag">THINK FAST. MERGE BIG. BOOM!</div>
+
+  <section id="start" class="panel">
+    <div style="font-size:66px;text-align:center">💣</div>
+    <h2 style="text-align:center">Ready to explode?</h2>
+    <p style="text-align:center">Merge matching tiles, rack up points and unleash explosive combos. How high can you go?</p>
+    <label for="playerName">YOUR FIRST NAME</label>
+    <input id="playerName" maxlength="18" placeholder="Enter your name..." autocomplete="given-name">
+    <button class="big" id="play">LET'S PLAY! 🚀</button>
+    <div class="mini">🏆 BEST SCORE: <strong id="startBest">0</strong></div>
+    <div class="mini">Swipe • Tap arrows • Keyboard</div>
+  </section>
+
+  <section id="game" class="hidden">
+    <div class="topline">
+      <div class="greeting">Hey, <strong id="who">Player</strong>! 👋</div>
+      <button class="secondary" id="soundBtn">🔊 Sound ON</button>
+    </div>
+    <div class="hud">
+      <div class="stat"><small>YOUR SCORE</small><strong id="score">0</strong></div>
+      <div class="stat"><small>PERSONAL BEST</small><strong id="best">0</strong></div>
+    </div>
+    <div class="topline" style="margin-bottom:10px">
+      <span style="font-size:13px;color:#d4c9ff">💣 Boom charge: <strong id="charge">0%</strong></span>
+      <button id="restart" class="secondary">↻ Restart</button>
+    </div>
+    <div class="board-wrap">
+      <div class="board" id="board" role="grid" aria-label="2048 game board"></div>
+      <div id="effects"></div>
+      <div id="overlay" class="hidden">
+        <div class="panel">
+          <div class="grenade" id="overIcon">💥</div>
+          <h2 id="overTitle">Game Over!</h2>
+          <p id="overText">No more moves!</p>
+          <button class="big" id="again">PLAY AGAIN 🔥</button>
+          <button class="big secondary" id="home">MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="empty"></span><button data-dir="up" aria-label="Move up">▲</button><span class="empty"></span>
+      <button data-dir="left" aria-label="Move left">◀</button><button data-dir="down" aria-label="Move down">▼</button><button data-dir="right" aria-label="Move right">▶</button>
+    </div>
+    <div class="hint">SWIPE OR USE ARROW KEYS / WASD</div>
+  </section>
+  <div class="footer">A tiny game with a BIG boom ✨</div>
+</main>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const start=$("start"),game=$("game"),boardEl=$("board"),effects=$("effects");
+let grid=[],score=0,best=0,name="Player",soundOn=true,audio=null,charge=0,over=false,moveCount=0,wonShown=false;
+try{best=Number(localStorage.getItem("boom2048-best"))||0}catch(e){}
+$("startBest").textContent=best;
+const dirs=["up","down","left","right"];
+function audioContext(){
+  if(!audio){const A=window.AudioContext||window.webkitAudioContext;if(A)audio=new A()}
+  if(audio&&audio.state==="suspended")audio.resume();
+}
+function tone(freq=440,duration=.09,type="sine",volume=.045,slide=0){
+  if(!soundOn||!audio)return;
+  try{
+    const o=audio.createOscillator(),g=audio.createGain();
+    o.type=type;o.frequency.setValueAtTime(freq,audio.currentTime);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,freq+slide),audio.currentTime+duration);
+    g.gain.setValueAtTime(volume,audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);
+    o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration);
+  }catch(e){}
+}
+function soundMerge(v){tone(Math.min(1000,220+v*1.3),.12,"triangle",.055,180)}
+function boomSound(){tone(100,.32,"sawtooth",.11,-60);setTimeout(()=>tone(55,.28,"square",.05,-20),65);setTimeout(()=>tone(440,.2,"sine",.035,500),110)}
+function setBest(){if(score>best){best=score;try{localStorage.setItem("boom2048-best",String(best))}catch(e){} }$("best").textContent=best;$("startBest").textContent=best}
+function emptyGrid(){return Array.from({length:4},()=>Array(4).fill(0))}
+function randomTile(){
+ const empty=[];for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(!grid[r][c])empty.push([r,c]);
+ if(!empty.length)return;
+ const [r,c]=empty[Math.floor(Math.random()*empty.length)];
+ // Difficulty rises with play: larger tiles become a little more common.
+ const bigChance=Math.min(.18,.025+moveCount*.001);
+ grid[r][c]=Math.random()<bigChance?4:2;
+}
+function render(){
+ boardEl.innerHTML="";
+ for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+   const v=grid[r][c],el=document.createElement("div");
+   el.className="cell"+(v?" filled":"");
+   if(v){el.textContent=v;el.dataset.v=v;if(v>2048)el.classList.add("high")}
+   el.setAttribute("role","gridcell");el.setAttribute("aria-label",v?String(v):"empty");
+   boardEl.appendChild(el);
+ }
+ $("score").textContent=score;$("best").textContent=best;
+ $("charge").textContent=charge+"%";
+}
+function fx(text,x=.5,y=.45,cls="boom"){
+ const el=document.createElement("div");el.className=cls;el.textContent=text;
+ el.style.left=(x*100)+"%";el.style.top=(y*100)+"%";
+ effects.appendChild(el);setTimeout(()=>el.remove(),900);
+}
+function burst(){
+ boomSound();fx("💥",.5,.35);fx("✨",.22,.58);fx("💣",.72,.55);
+ for(let i=0;i<8;i++){
+   const el=document.createElement("div");el.className="boom";el.textContent=["⭐","✨","💥","🟡"][i%4];
+   el.style.left=(10+Math.random()*75)+"%";el.style.top=(10+Math.random()*75)+"%";
+   el.style.animationDelay=(Math.random()*.13)+"s";effects.appendChild(el);setTimeout(()=>el.remove(),1000);
+ }
+}
+function startGame(){
+ audioContext();name=$("playerName").value.trim().slice(0,18)||"Player";
+ $("who").textContent=name;score=0;charge=0;moveCount=0;over=false;wonShown=false;
+ grid=emptyGrid();randomTile();randomTile();start.classList.add("hidden");game.classList.remove("hidden");$("overlay").classList.add("hidden");
+ render();tone(440,.12,"triangle",.04,200);
+}
+function move(dir){
+ if(over||game.classList.contains("hidden"))return;
+ audioContext();
+ const before=grid.map(row=>row.slice()),next=emptyGrid();let gained=0,merged=0;
+ for(let i=0;i<4;i++){
+   let line=[];
+   for(let j=0;j<4;j++){
+     const r=dir==="left"||dir==="right"?i:(dir==="up"?j:3-j);
+     const c=dir==="up"||dir==="down"?i:(dir==="left"?j:3-j);
+     line.push(grid[r][c]);
+   }
+   line=line.filter(Boolean);
+   const out=[];
+   for(let j=0;j<line.length;j++){
+     if(line[j]===line[j+1]){
+       const v=line[j]*2;out.push(v);gained+=v;merged++;j++;
+     }else out.push(line[j]);
+   }
+   while(out.length<4)out.push(0);
+   for(let j=0;j<4;j++){
+     const r=dir==="left"||dir==="right"?i:(dir==="up"?j:3-j);
+     const c=dir==="up"||dir==="down"?i:(dir==="left"?j:3-j);
+     next[r][c]=out[j];
+   }
+ }
+ if(JSON.stringify(before)===JSON.stringify(next)){if(!canMove())endGame();return}
+ grid=next;score+=gained;moveCount++;setBest();
+ if(gained){
+   soundMerge(gained);charge=Math.min(100,charge+Math.min(35,merged*13));
+   fx("+"+gained,.5,.44,"float");
+ }
+ // Every few turns, the board becomes busier. Higher starting tiles also
+ // appear a little more frequently as the move counter increases.
+ randomTile();
+ if(charge>=100){
+   charge=0;burst();
+   // A grenade clears a small cluster of low-value tiles, without removing
+   // the challenge of the puzzle. High-value tiles survive the blast.
+   const candidates=[];
+   for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(grid[r][c]&&grid[r][c]<=16)candidates.push([r,c]);
+   for(let k=0;k<Math.min(3,candidates.length);k++){
+     const idx=Math.floor(Math.random()*candidates.length),[r,c]=candidates.splice(idx,1)[0];
+     score+=grid[r][c];grid[r][c]=0;
+   }
+   setBest();randomTile();
+ }else if(merged>=2){fx("COMBO! 💥",.5,.25,"float");tone(700,.18,"triangle",.05,250)}
+ render();
+ if(!wonShown&&grid.some(row=>row.includes(2048))){
+   wonShown=true;fx("2048! LEGEND!",.5,.15,"float");tone(880,.3,"triangle",.07,500);
+ }
+ if(!canMove())endGame();
+}
+function canMove(){
+ for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+   if(!grid[r][c])return true;
+   if(r<3&&grid[r][c]===grid[r+1][c])return true;
+   if(c<3&&grid[r][c]===grid[r][c+1])return true;
+ }return false;
+}
+function endGame(){
+ over=true;$("overlay").classList.remove("hidden");$("overIcon").textContent=score>=2048?"🏆":"💣";
+ $("overTitle").textContent=score>=2048?"BOOM! AMAZING!":"GAME OVER!";
+ $("overText").textContent=`${name}, you scored ${score.toLocaleString()} points! Best: ${best.toLocaleString()}.`;
+ tone(170,.4,"triangle",.07,-100);
+}
+$("play").addEventListener("click",startGame);
+$("again").addEventListener("click",startGame);
+$("restart").addEventListener("click",startGame);
+$("home").addEventListener("click",()=>{game.classList.add("hidden");start.classList.remove("hidden");$("overlay").classList.add("hidden")});
+$("soundBtn").addEventListener("click",()=>{
+ soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊 Sound ON":"🔇 Sound OFF";
+ if(soundOn){audioContext();tone(520,.08)}
+});
+document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>move(b.dataset.dir)));
+window.addEventListener("keydown",e=>{
+ const key=e.key.toLowerCase();
+ const map={arrowup:"up",w:"up",arrowdown:"down",s:"down",arrowleft:"left",a:"left",arrowright:"right",d:"right"};
+ if(map[key]&&!game.classList.contains("hidden")){e.preventDefault();move(map[key])}
+ if(key==="enter"&&!start.classList.contains("hidden"))startGame();
+ if(key==="r"&&!game.classList.contains("hidden"))startGame();
+});
+let sx=0,sy=0,tracking=false;
+boardEl.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;tracking=true;});
+boardEl.addEventListener("pointerup",e=>{
+ if(!tracking)return;tracking=false;
+ const dx=e.clientX-sx,dy=e.clientY-sy;
+ if(Math.max(Math.abs(dx),Math.abs(dy))<22)return;
+ move(Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up"));
+});
+boardEl.addEventListener("pointercancel",()=>tracking=false);
+$("playerName").addEventListener("keydown",e=>{if(e.key==="Enter")startGame()});
+})();
+</script>
+</body>
+</html>
